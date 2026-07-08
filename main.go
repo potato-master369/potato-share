@@ -32,6 +32,27 @@ type PageData struct {
 
 var extensionIcons = make(map[string]string)
 var loadpath = "/home/ebayan"
+var templates = make(map[string]*template.Template)
+
+func loadTemplates() error {
+	files := map[string]string{
+		"grid":            "static/grid.html",
+		"list":            "static/list.html",
+		"preview-img":     "static/preview-img.html",
+		"preview-video":   "static/preview-video.html",
+		"preview-invalid": "static/preview-invalid.html",
+	}
+
+	for key, path := range files {
+		t, err := template.ParseFiles(path)
+		if err != nil {
+			return fmt.Errorf("error parsing template %s: %w", path, err)
+		}
+		templates[key] = t
+	}
+
+	return nil
+}
 
 func formatFileSize(bytes int64) string {
 	if bytes < 0 {
@@ -167,10 +188,10 @@ func ServeFileBrowserGrid(w http.ResponseWriter, r *http.Request) {
 		Files:       fileRows,
 	}
 
-	tmpl, err := template.ParseFiles("static/grid.html")
-	if err != nil {
+	tmpl := templates["grid"]
+	if tmpl == nil {
 		http.Error(w, "Internal Server Error: Missing or broken template", http.StatusInternalServerError)
-		fmt.Println("Template parsing error:", err)
+		fmt.Println("Missing parsed template: grid")
 		return
 	}
 
@@ -204,10 +225,10 @@ func ServePreview(w http.ResponseWriter, r *http.Request) {
 			ModTime: fi.ModTime().Format("2006-01-02 15:04:05"),
 		}
 
-		tmpl, err := template.ParseFiles("static/preview-img.html")
-		if err != nil {
+		tmpl := templates["preview-img"]
+		if tmpl == nil {
 			http.Error(w, "Internal Server Error: Missing or broken template", http.StatusInternalServerError)
-			fmt.Println("Template parsing error:", err)
+			fmt.Println("Missing parsed template: preview-img")
 			return
 		}
 
@@ -228,10 +249,10 @@ func ServePreview(w http.ResponseWriter, r *http.Request) {
 			ModTime: fi.ModTime().Format("2006-01-02 15:04:05"),
 		}
 
-		tmpl, err := template.ParseFiles("static/preview-video.html")
-		if err != nil {
+		tmpl := templates["preview-video"]
+		if tmpl == nil {
 			http.Error(w, "Internal Server Error: Missing or broken template", http.StatusInternalServerError)
-			fmt.Println("Template parsing error:", err)
+			fmt.Println("Missing parsed template: preview-video")
 			return
 		}
 
@@ -253,10 +274,10 @@ func ServePreview(w http.ResponseWriter, r *http.Request) {
 			ModTime: fi.ModTime().Format("2006-01-02 15:04:05"),
 		}
 
-		tmpl, err := template.ParseFiles("static/preview-invalid.html")
-		if err != nil {
+		tmpl := templates["preview-invalid"]
+		if tmpl == nil {
 			http.Error(w, "Internal Server Error: Missing or broken template", http.StatusInternalServerError)
-			fmt.Println("Template parsing error:", err)
+			fmt.Println("Missing parsed template: preview-invalid")
 			return
 		}
 
@@ -345,10 +366,10 @@ func ServeFileBrowser(w http.ResponseWriter, r *http.Request) {
 		Files:       fileRows,
 	}
 
-	tmpl, err := template.ParseFiles("static/list.html")
-	if err != nil {
+	tmpl := templates["list"]
+	if tmpl == nil {
 		http.Error(w, "Internal Server Error: Missing or broken template", http.StatusInternalServerError)
-		fmt.Println("Template parsing error:", err)
+		fmt.Println("Missing parsed template: list")
 		return
 	}
 
@@ -464,6 +485,12 @@ func main() {
 	err = loadIconsConfig("ext-fa.txt")
 	if err != nil {
 		fmt.Println("Error loading icons config:", err)
+		return
+	}
+
+	err = loadTemplates()
+	if err != nil {
+		fmt.Println("Error loading templates:", err)
 		return
 	}
 
