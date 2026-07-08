@@ -16,11 +16,12 @@ import (
 )
 
 type FileRow struct {
-	Name    string
-	Link    string
-	Icon    string
-	ModTime string
-	Size    string
+	Name        string
+	Link        string
+	PreviewLink string
+	Icon        string
+	ModTime     string
+	Size        string
 }
 
 type PageData struct {
@@ -135,6 +136,9 @@ func ServeFileBrowserGrid(w http.ResponseWriter, r *http.Request) {
 		link := "/download" + currentPath + filename
 		link = filepath.Clean(link)
 
+		previewlink := "/preview" + currentPath + filename
+		previewlink = filepath.Clean(previewlink)
+
 		icon := getIconForFile(filename)
 
 		if e.IsDir() {
@@ -148,11 +152,12 @@ func ServeFileBrowserGrid(w http.ResponseWriter, r *http.Request) {
 		}
 
 		fileRows = append(fileRows, FileRow{
-			Name:    filename,
-			Link:    link,
-			Icon:    icon,
-			ModTime: mtime.Format("2006-01-02 15:04:05"),
-			Size:    size,
+			PreviewLink: previewlink,
+			Name:        filename,
+			Link:        link,
+			Icon:        icon,
+			ModTime:     mtime.Format("2006-01-02 15:04:05"),
+			Size:        size,
 		})
 	}
 
@@ -172,6 +177,93 @@ func ServeFileBrowserGrid(w http.ResponseWriter, r *http.Request) {
 	err = tmpl.Execute(w, data)
 	if err != nil {
 		fmt.Println("Template execution error:", err)
+	}
+}
+
+func ServePreview(w http.ResponseWriter, r *http.Request) {
+	filePath := strings.TrimPrefix(r.URL.Path, "/preview")
+	localPath := loadpath + filePath
+
+	fi, err := os.Stat(localPath)
+	if err != nil {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(fi.Name()))
+	if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".gif" || ext == ".bmp" || ext == ".webp" {
+		data := struct {
+			Name    string
+			URL     string
+			Size    string
+			ModTime string
+		}{
+			Name:    fi.Name(),
+			URL:     "/static" + filePath,
+			Size:    formatFileSize(fi.Size()),
+			ModTime: fi.ModTime().Format("2006-01-02 15:04:05"),
+		}
+
+		tmpl, err := template.ParseFiles("static/preview-img.html")
+		if err != nil {
+			http.Error(w, "Internal Server Error: Missing or broken template", http.StatusInternalServerError)
+			fmt.Println("Template parsing error:", err)
+			return
+		}
+
+		err = tmpl.Execute(w, data)
+		if err != nil {
+			fmt.Println("Template execution error:", err)
+		}
+	} else if ext == ".mp4" || ext == ".webm" || ext == ".ogg" {
+		data := struct {
+			Name    string
+			URL     string
+			Size    string
+			ModTime string
+		}{
+			Name:    fi.Name(),
+			URL:     "/static" + filePath,
+			Size:    formatFileSize(fi.Size()),
+			ModTime: fi.ModTime().Format("2006-01-02 15:04:05"),
+		}
+
+		tmpl, err := template.ParseFiles("static/preview-video.html")
+		if err != nil {
+			http.Error(w, "Internal Server Error: Missing or broken template", http.StatusInternalServerError)
+			fmt.Println("Template parsing error:", err)
+			return
+		}
+
+		err = tmpl.Execute(w, data)
+		if err != nil {
+			fmt.Println("Template execution error:", err)
+		}
+	} else {
+		// For invalid
+		data := struct {
+			Name    string
+			URL     string
+			Size    string
+			ModTime string
+		}{
+			Name:    fi.Name(),
+			URL:     "/static" + filePath,
+			Size:    formatFileSize(fi.Size()),
+			ModTime: fi.ModTime().Format("2006-01-02 15:04:05"),
+		}
+
+		tmpl, err := template.ParseFiles("static/preview-invalid.html")
+		if err != nil {
+			http.Error(w, "Internal Server Error: Missing or broken template", http.StatusInternalServerError)
+			fmt.Println("Template parsing error:", err)
+			return
+		}
+
+		err = tmpl.Execute(w, data)
+		if err != nil {
+			fmt.Println("Template execution error:", err)
+		}
 	}
 }
 
@@ -222,6 +314,9 @@ func ServeFileBrowser(w http.ResponseWriter, r *http.Request) {
 		link := "/download" + currentPath + filename
 		link = filepath.Clean(link)
 
+		previewlink := "/preview" + currentPath + filename
+		previewlink = filepath.Clean(previewlink)
+
 		icon := getIconForFile(filename)
 
 		if e.IsDir() {
@@ -235,11 +330,12 @@ func ServeFileBrowser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		fileRows = append(fileRows, FileRow{
-			Name:    filename,
-			Link:    link,
-			Icon:    icon,
-			ModTime: mtime.Format("2006-01-02 15:04:05"),
-			Size:    size,
+			PreviewLink: previewlink,
+			Name:        filename,
+			Link:        link,
+			Icon:        icon,
+			ModTime:     mtime.Format("2006-01-02 15:04:05"),
+			Size:        size,
 		})
 	}
 
@@ -381,6 +477,10 @@ func main() {
 		// content-type headers and streams the bytes efficiently.
 		http.ServeFile(w, r, "./static/index.html")
 	})
+
+	fs := http.FileServer(http.Dir(loadpath))
+	http.Handle("/static/", http.StripPrefix("/static", fs))
+	http.HandleFunc("/preview/", ServePreview)
 
 	server := &http.Server{
 		Addr:           fmt.Sprintf("0.0.0.0:%d", port),

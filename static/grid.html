@@ -67,25 +67,25 @@
 		}
 
 		summary {
-            cursor: pointer;
-            font-weight: bold;
-            color: #313B46;
-            outline: none;
-            user-select: none;
-            transition: all 0.2s ease;
-        }
+			cursor: pointer;
+			font-weight: bold;
+			color: #313B46;
+			outline: none;
+			user-select: none;
+			transition: all 0.2s ease;
+		}
 
-        summary:hover {
-            color: #8ea7c1;
-        }
+		summary:hover {
+			color: #8ea7c1;
+		}
 
-        summary::-webkit-details-marker {
-            display: none;
-        }
+		summary::-webkit-details-marker {
+			display: none;
+		}
 
-        summary {
-            list-style: none;
-        }
+		summary {
+			list-style: none;
+		}
 	</style>
 </head>
 
@@ -112,21 +112,21 @@
 	</div>
 
 	<details>
-        <summary style="font-family: sans-serif; padding-left: 10px;">Make a new folder in this directory</summary>
-        <form action="/mkdir" method="POST" style="padding: 10px">
-            <input type="hidden" id="uploadPath" name="path" value="{{ .CurrentPath }}">
+		<summary style="font-family: sans-serif; padding-left: 10px;">Make a new folder in this directory</summary>
+		<form action="/mkdir" method="POST" style="padding: 10px">
+			<input type="hidden" id="uploadPath" name="path" value="{{ .CurrentPath }}">
 			<input type="hidden" id="returnTo" name="returnTo" value="/grid">
-            <label for="folderName" style="font-family: sans-serif; font-weight: bold; color: #313B46;">
-                Folder Name:
-            </label>
-            <input type="text" id="folderName" name="folderName" required>
-            <br>
-            <button type="submit"
-                style="background-color: #8ea7c1; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
-                Create
-            </button>
-        </form>
-    </details>
+			<label for="folderName" style="font-family: sans-serif; font-weight: bold; color: #313B46;">
+				Folder Name:
+			</label>
+			<input type="text" id="folderName" name="folderName" required>
+			<br>
+			<button type="submit"
+				style="background-color: #8ea7c1; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
+				Create
+			</button>
+		</form>
+	</details>
 
 	<script>
 		document.getElementById('uploadForm').addEventListener('submit', function (e) {
@@ -164,13 +164,15 @@
 
 	<div class="file-browser">
 		{{ range .Files }}
-		<a href="{{ .Link }}">
-			<div class="file">
+		<div class="file">
+			<a href="{{ .Link }}" class="filename">
 				<i class="fa-solid {{ .Icon }} icon"></i>
 				<br>
-				<span class="filename">{{ .Name }}</span>
-			</div>
-		</a>
+				{{ .Name }}</a>
+			{{ if and (ne .Icon "fa-solid fa-folder") (ne .Icon "fa-solid fa-folder-open") }}
+			<a href="{{ .PreviewLink}}" target="_blank">(preview)</a>
+			{{ end }}
+		</div>
 		{{ end }}
 	</div>
 </body>

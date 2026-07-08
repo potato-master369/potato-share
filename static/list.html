@@ -2,175 +2,181 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Index of {{ .CurrentPath }}</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Index of {{ .CurrentPath }}</title>
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        h1 {
-            font-family: sans-serif;
-            color: #313B46;
-        }
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+	<style>
+		h1 {
+			font-family: sans-serif;
+			color: #313B46;
+		}
 
-        .list {
-            display: grid;
-            grid-template-columns: 20px auto 240px 80px;
-            padding: 20px;
-            row-gap: 20px;
-        }
+		.list {
+			display: grid;
+			grid-template-columns: 20px auto 240px 80px;
+			padding: 20px;
+			row-gap: 20px;
+		}
 
-        .icon {
-            font-size: 16px;
-            text-align: center;
-        }
+		.icon {
+			font-size: 16px;
+			text-align: center;
+		}
 
-        .header {
-            background-color: #8ea7c1;
-            font-weight: bold;
-            font-family: sans-serif;
-            padding: 6px 4px;
-        }
+		.header {
+			background-color: #8ea7c1;
+			font-weight: bold;
+			font-family: sans-serif;
+			padding: 6px 4px;
+		}
 
-        .file {
-            font-family: sans-serif;
-            font-weight: normal;
-        }
+		.file {
+			font-family: sans-serif;
+			font-weight: normal;
+		}
 
-        .filename:hover {
-            background-color: #bfcddc;
-        }
+		.filename:hover {
+			background-color: #bfcddc;
+		}
 
-        a {
-            text-decoration: none;
-            color: #313B46;
-            font-family: sans-serif;
-            display: block;
-            /* Makes the entire grid cell hoverable */
-            padding: 2px 4px;
-        }
+		a {
+			text-decoration: none;
+			color: #313B46;
+			font-family: sans-serif;
+			display: block;
+			/* Makes the entire grid cell hoverable */
+			padding: 2px 4px;
+		}
 
-        form {
-            margin: 0px;
-        }
+		form {
+			margin: 0px;
+		}
 
-        progress {
-            width: 100%;
-            height: 10px;
-            accent-color: #8ea7c1;
-        }
+		progress {
+			width: 100%;
+			height: 10px;
+			accent-color: #8ea7c1;
+		}
 
-        summary {
-            cursor: pointer;
-            font-weight: bold;
-            color: #313B46;
-            outline: none;
-            user-select: none;
-            transition: all 0.2s ease;
-        }
+		summary {
+			cursor: pointer;
+			font-weight: bold;
+			color: #313B46;
+			outline: none;
+			user-select: none;
+			transition: all 0.2s ease;
+		}
 
-        summary:hover {
-            color: #8ea7c1;
-        }
+		summary:hover {
+			color: #8ea7c1;
+		}
 
-        summary::-webkit-details-marker {
-            display: none;
-        }
+		summary::-webkit-details-marker {
+			display: none;
+		}
 
-        summary {
-            list-style: none;
-        }
-    </style>
+		summary {
+			list-style: none;
+		}
+
+	</style>
 </head>
 
 <body>
-    <h1>Index of {{ .Host }}: {{ .CurrentPath }}</h1>
-    <a href="/grid">To grid view</a>
+	<h1>Index of {{ .Host }}: {{ .CurrentPath }}</h1>
+	<a href="/grid">To grid view</a>
 
-    <form action="/upload" id="uploadForm" method="POST" enctype="multipart/form-data" style="padding: 10px;">
-        <input type="hidden" id="uploadPath" name="path" value="{{ .CurrentPath }}">
+	<form action="/upload" id="uploadForm" method="POST" enctype="multipart/form-data" style="padding: 10px;">
+		<input type="hidden" id="uploadPath" name="path" value="{{ .CurrentPath }}">
 
-        <label for="fileInput" style="font-family: sans-serif; font-weight: bold; color: #313B46;">
-            Upload File to current folder:
-        </label>
-        <input type="file" id="fileInput" name="myFile" required>
-        <button type="submit"
-            style="background-color: #8ea7c1; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
-            Upload
-        </button>
-    </form>
+		<label for="fileInput" style="font-family: sans-serif; font-weight: bold; color: #313B46;">
+			Upload File to current folder:
+		</label>
+		<input type="file" id="fileInput" name="myFile" required>
+		<button type="submit"
+			style="background-color: #8ea7c1; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
+			Upload
+		</button>
+	</form>
 
-    <div id="progressContainer" style="display: none; margin-top: 10px;">
-        <progress id="progressBar" value="0" max="100" style="width: 100%; height: 20px;"></progress>
-        <span id="progressText" style="font-family: sans-serif; font-size: 12px; color: #313B46;">0% uploaded...</span>
-    </div>
+	<div id="progressContainer" style="display: none; margin-top: 10px;">
+		<progress id="progressBar" value="0" max="100" style="width: 100%; height: 20px;"></progress>
+		<span id="progressText" style="font-family: sans-serif; font-size: 12px; color: #313B46;">0%
+			uploaded...</span>
+	</div>
 
-    <details>
-        <summary style="font-family: sans-serif; padding-left: 10px;">Make a new folder in this directory</summary>
-        <form action="/mkdir" method="POST" style="padding: 10px">
-            <input type="hidden" id="uploadPath" name="path" value="{{ .CurrentPath }}">
-            <label for="folderName" style="font-family: sans-serif; font-weight: bold; color: #313B46;">
-                Folder Name:
-            </label>
-            <input type="text" id="folderName" name="folderName" required>
-            <input type="hidden" id="returnTo" name="returnTo" value="/list">
-            <br>
-            <button type="submit"
-                style="background-color: #8ea7c1; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
-                Create
-            </button>
-        </form>
-    </details>
+	<details>
+		<summary style="font-family: sans-serif; padding-left: 10px;">Make a new folder in this directory
+		</summary>
+		<form action="/mkdir" method="POST" style="padding: 10px">
+			<input type="hidden" id="uploadPath" name="path" value="{{ .CurrentPath }}">
+			<label for="folderName" style="font-family: sans-serif; font-weight: bold; color: #313B46;">
+				Folder Name:
+			</label>
+			<input type="text" id="folderName" name="folderName" required>
+			<input type="hidden" id="returnTo" name="returnTo" value="/list">
+			<br>
+			<button type="submit"
+				style="background-color: #8ea7c1; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
+				Create
+			</button>
+		</form>
+	</details>
 
-    <script>
-        document.getElementById('uploadForm').addEventListener('submit', function (e) {
-            e.preventDefault();
+	<script>
+		document.getElementById('uploadForm').addEventListener('submit', function (e) {
+			e.preventDefault();
 
-            const fileInput = document.getElementById('fileInput');
-            const path = document.getElementById('uploadPath').value;
+			const fileInput = document.getElementById('fileInput');
+			const path = document.getElementById('uploadPath').value;
 
-            if (fileInput.files.length === 0) return;
+			if (fileInput.files.length === 0) return;
 
-            const formData = new FormData();
-            formData.append("myFile", fileInput.files[0]);
-            formData.append("path", path);
+			const formData = new FormData();
+			formData.append("myFile", fileInput.files[0]);
+			formData.append("path", path);
 
-            const xhr = new XMLHttpRequest();
+			const xhr = new XMLHttpRequest();
 
-            document.getElementById('progressContainer').style.display = 'block';
+			document.getElementById('progressContainer').style.display = 'block';
 
-            xhr.upload.addEventListener('progress', function (e) {
-                if (e.lengthComputable) {
-                    const percentComplete = Math.round((e.loaded / e.total) * 100);
-                    document.getElementById('progressBar').value = percentComplete;
-                    document.getElementById('progressText').textContent = percentComplete + '% uploaded...';
-                }
-            });
+			xhr.upload.addEventListener('progress', function (e) {
+				if (e.lengthComputable) {
+					const percentComplete = Math.round((e.loaded / e.total) * 100);
+					document.getElementById('progressBar').value = percentComplete;
+					document.getElementById('progressText').textContent = percentComplete + '% uploaded...';
+				}
+			});
 
-            xhr.addEventListener('load', function () {
-                window.location.reload();
-            });
+			xhr.addEventListener('load', function () {
+				window.location.reload();
+			});
 
-            xhr.open('POST', '/upload', true);
-            xhr.send(formData);
-        });
-    </script>
+			xhr.open('POST', '/upload', true);
+			xhr.send(formData);
+		});
+	</script>
 
-    <div class="list">
-        <div class="header"></div>
-        <div class="header">File Name</div>
-        <div class="header">Last Modified</div>
-        <div class="header">Size</div>
+	<div class="list">
+		<div class="header"></div>
+		<div class="header">File Name</div>
+		<div class="header">Last Modified</div>
+		<div class="header">Size</div>
 
-        {{ range .Files }}
-        <div class="file"><i class="fa-solid {{ .Icon }} icon"></i></div>
-        <div class="file filename">
-            <a href="{{ .Link }}">{{ .Name }}</a>
-        </div>
-        <div class="file">{{ .ModTime }}</div>
-        <div class="file">{{ .Size }}</div>
-        {{ end }}
-    </div>
+		{{ range .Files }}
+		<div class="file"><i class="fa-solid {{ .Icon }} icon"></i></div>
+		<div class="file filename">
+			<a href="{{ .Link }}">{{ .Name }}</a>
+			{{ if and (ne .Icon "fa-solid fa-folder") (ne .Icon "fa-solid fa-folder-open") }}
+			<a href="{{ .PreviewLink}}" target="_blank">(preview)</a>
+			{{ end }}
+		</div>
+		<div class="file">{{ .ModTime }}</div>
+		<div class="file">{{ .Size }}</div>
+		{{ end }}
+	</div>
 </body>
 
 </html>
