@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "net/http/pprof"
 )
 
 type FileRow struct {
@@ -236,7 +237,7 @@ func ServePreview(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("Template execution error:", err)
 		}
-	} else if ext == ".mp4" || ext == ".webm" || ext == ".ogg" {
+	} else if ext == ".mp4" || ext == ".webm" || ext == ".ogg" || ext == ".mkv" {
 		data := struct {
 			Name    string
 			URL     string
