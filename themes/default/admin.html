@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        h1 {
+			font-family: sans-serif;
+			color: #313B46;
+		}
+        body {
+            font-family: sans-serif;
+        }
+        th, td {
+            text-align: left;
+            padding: 8px;
+            border: 1px solid #313B46;
+            margin: 0;
+            font-family: sans-serif;
+        }
+
+        table {
+            padding: 0;
+            border-collapse: collapse;
+        }
+
+    </style>
+    <title>Admin panel</title>
+</head>
+<body>
+    <h1>Admin Panel</h1>
+    <h2>Passwords</h2>
+    <form action="/passwd-create" method="POST">
+        <input type="text" name="passwd" placeholder="New password" required>
+        <select name="perms">
+            <option value="admin">Admin</option>
+            <option value="user">User</option>
+            <option value="ro">Read-only</option>
+        </select>
+        <button type="submit">Create</button>
+    </form>
+    <br>
+    <table>
+        <tr>
+            <th>Password</th>
+            <th>Perms</th>
+            <th>Action</th>
+        </tr>
+        {{range .Passwords}}
+        <tr>
+            <td>{{.Password}}</td>
+            <td>{{.Perms}}</td>
+            <td>
+                <a href="/passwd-delete/{{.Password}}">Delete</a>
+            </td>
+        </tr>
+        {{end}}
+    </table>
+</body>
+</html>

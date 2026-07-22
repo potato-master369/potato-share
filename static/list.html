@@ -15,7 +15,7 @@
 
 		.list {
 			display: grid;
-			grid-template-columns: 20px auto 240px 80px;
+			grid-template-columns: 20px auto 240px 80px 80px;
 			padding: 20px;
 			row-gap: 20px;
 		}
@@ -164,6 +164,7 @@
 		<div class="header">File Name</div>
 		<div class="header">Last Modified</div>
 		<div class="header">Size</div>
+		<div class="header"><!-- Empty --></div>
 
 		{{ range .Files }}
 		<div class="file"><i class="fa-solid {{ .Icon }} icon"></i></div>
@@ -175,6 +176,15 @@
 		</div>
 		<div class="file">{{ .ModTime }}</div>
 		<div class="file">{{ .Size }}</div>
+		<div class="file">
+			<form action="/delete" method="POST">
+				<input type="hidden" name="deletePath" value="{{ $.CurrentPath }}">
+				<input type="hidden" name="deleteFile" value="{{ .Name }}">
+				{{ if and (ne .Icon "fa-solid fa-folder") (ne .Icon "fa-solid fa-folder-open") }}
+				<button type="submit">Delete</button>
+				{{ end }}
+			</form>
+		</div>
 		{{ end }}
 	</div>
 

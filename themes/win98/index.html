@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Potato Share</title>
+	<style>
+		/* Import MS Sans Serif fallback font */
+		@import url('https://fonts.cdnfonts.com/css/ms-sans-serif');
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			background-color: #008080;
+			/* Classic Win98 Teal */
+			font-family: 'MS Sans Serif', Tahoma, Geneva, sans-serif;
+			font-size: 11px;
+			/* Disables font anti-aliasing / smoothing */
+			-webkit-font-smoothing: none;
+			-moz-osx-font-smoothing: unset;
+			font-smooth: never;
+
+			/* Ensures text snaps to sharp pixel boundaries */
+			text-rendering: optimizeSpeed;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			min-height: 100vh;
+			margin: 0;
+		}
+
+		/* Standalone Title Bar */
+		.titlebar {
+			width: 380px;
+			height: 18px;
+			background: linear-gradient(90deg, #000080, #1084d0);
+			/* Classic Blue Gradient */
+			padding: 2px 4px;
+			display: flex;
+			align-items: center;
+
+			/* Top, Left, Right Bevel (Leaves bottom open to connect to window) */
+			border-top: 2px solid #ffffff;
+			border-left: 2px solid #ffffff;
+			border-right: 2px solid #000000;
+			box-shadow: inset 1px 1px #dfdfdf, inset -1px 0 #808080;
+		}
+
+		/* Title bar text */
+		.titlebar::before {
+			content: "Potato Share";
+			color: #ffffff;
+			font-weight: bold;
+			font-size: 11px;
+		}
+
+		/* Window Content Box (Sits directly beneath title bar) */
+		.window {
+			background-color: #c0c0c0;
+			width: 380px;
+			padding: 3px;
+
+			/* Bevel sides and bottom only */
+			border-left: 2px solid #ffffff;
+			border-right: 2px solid #000000;
+			border-bottom: 2px solid #000000;
+			box-shadow: inset 1px 0 #dfdfdf, inset -1px -1px #808080;
+		}
+
+		/* Inner Frame */
+		.frame {
+			padding: 12px;
+		}
+
+		/* Headings & Text */
+		h1 {
+			font-size: 14px;
+			margin-top: 0;
+			margin-bottom: 8px;
+			color: #000000;
+		}
+
+		p {
+			margin-top: 0;
+			margin-bottom: 16px;
+			color: #000000;
+		}
+
+		/* Windows 98 Style Buttons */
+		.button {
+			display: block;
+			width: 100%;
+			text-align: center;
+			text-decoration: none;
+			color: #000000;
+			background-color: #c0c0c0;
+			padding: 4px 6px;
+			margin-bottom: 8px;
+
+			/* Outset Bevel for Buttons */
+			border-top: 2px solid #ffffff;
+			border-left: 2px solid #ffffff;
+			border-right: 2px solid #000000;
+			border-bottom: 2px solid #000000;
+			box-shadow: inset -1px -1px #808080, inset 1px 1px #dfdfdf;
+		}
+
+		.button:last-child {
+			margin-bottom: 0;
+		}
+
+		/* Active / Pressed Button Effect */
+		.button:active {
+			border-top: 2px solid #000000;
+			border-left: 2px solid #000000;
+			border-right: 2px solid #ffffff;
+			border-bottom: 2px solid #ffffff;
+			box-shadow: inset 1px 1px #808080, inset -1px -1px #dfdfdf;
+			padding: 5px 5px 3px 7px;
+			/* Shifts text down-right to simulate a click */
+		}
+
+		/* Focus Outline for Accessibility */
+		.button:focus {
+			outline: 1px dotted #000000;
+			outline-offset: -4px;
+		}
+
+	</style>
+</head>
+
+<body>
+	<div class="titlebar"></div>
+	<div class="window">
+		<div class="frame">
+			<h1>Potato Share</h1>
+			<p>This is an instance of Potato Share.</p>
+			<a class="button" href="/login">Login to Potato Share</a>
+			<a class="button" href="/list">Explore at /list</a>
+			<a class="button" href="/admin">Admin Panel (Admin only)</a>
+		</div>
+	</div>
+</body>
+
+</html>

@@ -653,6 +653,53 @@ func ServeMkdir(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, returnTo+currentPath, http.StatusSeeOther)
 }
 
+func ServeDelete(w http.ResponseWriter, r *http.Request) {
+	perms, err := getSessionPerms(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if perms == "ro" {
+		http.Error(w, "Forbidden: read-only users cannot delete files", http.StatusForbidden)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	currentPath := r.FormValue("deletePath")
+	deleteFile := r.FormValue("deleteFile")
+	if deleteFile == "" {
+		http.Error(w, "File name cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	filePath := filepath.Join(loadpath, currentPath, deleteFile)
+	filePath = filepath.Clean(filePath)
+
+	// Security check: ensure the resolved path is still within loadpath
+	if !strings.HasPrefix(filePath, loadpath) {
+		http.Error(w, "Invalid file path", http.StatusBadRequest)
+		return
+	}
+
+	err = os.Remove(filePath)
+	if err != nil {
+		http.Error(w, "Failed to delete file", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/list"+currentPath, http.StatusSeeOther)
+}
+
 func ensureSessionPermsColumn() error {
 	rows, err := db.Query("PRAGMA table_info(sessions)")
 	if err != nil {
@@ -965,6 +1012,7 @@ func main() {
 	http.HandleFunc("/download/", AuthMiddleware(db, ServeDownload))
 	http.HandleFunc("/upload", AuthMiddleware(db, ServeUpload))
 	http.HandleFunc("/mkdir", AuthMiddleware(db, ServeMkdir))
+	http.HandleFunc("/delete", AuthMiddleware(db, ServeDelete))
 	http.HandleFunc("/grid/", AuthMiddleware(db, ServeFileBrowserGrid))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./static/index.html")

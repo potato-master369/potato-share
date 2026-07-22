@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Index of {{ .CurrentPath }}</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+	<style>
+		h1 {
+			font-family: sans-serif;
+			color: #313B46;
+		}
+
+		.file-browser {
+			display: grid;
+			/* Using auto-fill makes the grid responsive so it adjusts based on screen width */
+			grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+			padding: 20px;
+			margin: 20px 10%;
+			gap: 15px;
+		}
+
+		.file {
+			background-color: #C5CAE988;
+			backdrop-filter: blur(20px);
+			padding: 20px;
+			border-radius: 20px;
+			text-align: center;
+			font-family: sans-serif;
+			color: #313B46;
+			transition: background-color 0.2s ease;
+		}
+
+		/* Adds a nice hover effect to the whole grid card */
+		.file:hover {
+			background-color: #bfcddc88;
+		}
+
+		.icon {
+			font-size: 48px;
+			margin-bottom: 10px;
+			display: inline-block;
+		}
+
+		.filename {
+			display: block;
+			word-wrap: break-word;
+			/* Prevents long filenames from breaking out of the card */
+			font-size: 14px;
+		}
+
+		a {
+			text-decoration: none;
+			color: #313B46;
+			font-family: sans-serif;
+		}
+
+		form {
+			margin: 0px;
+		}
+
+		progress {
+			width: 100%;
+			height: 10px;
+			accent-color: #8ea7c1;
+		}
+
+		summary {
+			cursor: pointer;
+			font-weight: bold;
+			color: #313B46;
+			outline: none;
+			user-select: none;
+			transition: all 0.2s ease;
+		}
+
+		summary:hover {
+			color: #8ea7c1;
+		}
+
+		summary::-webkit-details-marker {
+			display: none;
+		}
+
+		summary {
+			list-style: none;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>Index of {{ .Host }}: {{ .CurrentPath }}</h1>
+	<a href="/list">To list view</a>
+
+	<form action="/upload" id="uploadForm" method="POST" enctype="multipart/form-data" style="padding: 10px;">
+		<input type="hidden" id="uploadPath" name="path" value="{{ .CurrentPath }}">
+
+		<label for="fileInput" style="font-family: sans-serif; font-weight: bold; color: #313B46;">
+			Upload File to current folder:
+		</label>
+		<input type="file" id="fileInput" name="myFile" required>
+		<button type="submit"
+			style="background-color: #8ea7c1; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
+			Upload
+		</button>
+	</form>
+
+	<div id="progressContainer" style="display: none; margin-top: 10px;">
+		<progress id="progressBar" value="0" max="100" style="width: 100%; height: 20px;"></progress>
+		<span id="progressText" style="font-family: sans-serif; font-size: 12px; color: #313B46;">0% uploaded...</span>
+	</div>
+
+	<details>
+		<summary style="font-family: sans-serif; padding-left: 10px;">Make a new folder in this directory</summary>
+		<form action="/mkdir" method="POST" style="padding: 10px">
+			<input type="hidden" id="uploadPath" name="path" value="{{ .CurrentPath }}">
+			<input type="hidden" id="returnTo" name="returnTo" value="/grid">
+			<label for="folderName" style="font-family: sans-serif; font-weight: bold; color: #313B46;">
+				Folder Name:
+			</label>
+			<input type="text" id="folderName" name="folderName" required>
+			<br>
+			<button type="submit"
+				style="background-color: #8ea7c1; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
+				Create
+			</button>
+		</form>
+	</details>
+
+	<script>
+		document.getElementById('uploadForm').addEventListener('submit', function (e) {
+			e.preventDefault();
+
+			const fileInput = document.getElementById('fileInput');
+			const path = document.getElementById('uploadPath').value;
+
+			if (fileInput.files.length === 0) return;
+
+			const formData = new FormData();
+			formData.append("myFile", fileInput.files[0]);
+			formData.append("path", path);
+
+			const xhr = new XMLHttpRequest();
+
+			document.getElementById('progressContainer').style.display = 'block';
+
+			xhr.upload.addEventListener('progress', function (e) {
+				if (e.lengthComputable) {
+					const percentComplete = Math.round((e.loaded / e.total) * 100);
+					document.getElementById('progressBar').value = percentComplete;
+					document.getElementById('progressText').textContent = percentComplete + '% uploaded...';
+				}
+			});
+
+			xhr.addEventListener('load', function () {
+				window.location.reload();
+			});
+
+			xhr.open('POST', '/upload', true);
+			xhr.send(formData);
+		});
+	</script>
+
+	<div class="file-browser">
+		{{ range .Files }}
+		<div class="file">
+			<a href="{{ .Link }}" class="filename">
+				<i class="fa-solid {{ .Icon }} icon"></i>
+				<br>
+				{{ .Name }}</a>
+			{{ if and (ne .Icon "fa-solid fa-folder") (ne .Icon "fa-solid fa-folder-open") }}
+			<a href="{{ .PreviewLink}}" target="_blank">(preview)</a>
+			{{ end }}
+		</div>
+		{{ end }}
+	</div>
+	<a href="/logout">Log out</a> <a href="/login">Log in</a>
+</body>
+
+</html>
