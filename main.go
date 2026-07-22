@@ -836,7 +836,8 @@ func AuthMiddleware(db *sql.DB, next http.HandlerFunc) http.HandlerFunc {
 		cookie, err := r.Cookie("session_token")
 		if err != nil {
 			if err == http.ErrNoCookie {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				// change to redirect to login
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
 				return
 			}
 			http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -846,12 +847,38 @@ func AuthMiddleware(db *sql.DB, next http.HandlerFunc) http.HandlerFunc {
 		var expiresAt time.Time
 		err = db.QueryRow("SELECT expiration FROM sessions WHERE token = ?", cookie.Value).Scan(&expiresAt)
 		if err != nil || time.Now().After(expiresAt) {
-			http.Error(w, "Unauthorized or session expired", http.StatusUnauthorized)
+			// change to redirect to login
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 
 		next(w, r)
 	}
+}
+
+func HandleLogout(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session_token")
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	_, err = db.Exec("DELETE FROM sessions WHERE token = ?", cookie.Value)
+	if err != nil {
+		log.Printf("failed to delete session on logout: %v", err)
+	}
+
+	// Clear the cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 func main() {
@@ -947,6 +974,7 @@ func main() {
 	http.Handle("/static/", AuthHandler(db, http.StripPrefix("/static", fs)))
 	http.HandleFunc("/preview/", AuthMiddleware(db, ServePreview))
 	http.HandleFunc("/login", ServeLogin)
+	http.HandleFunc("/logout", HandleLogout)
 	http.HandleFunc("/admin", AdminMiddleware(db, ServeAdmin))
 	http.HandleFunc("/passwd-create", AdminMiddleware(db, ServePasswordCreate))
 	http.HandleFunc("/passwd-delete/", AdminMiddleware(db, ServePasswordDelete))
