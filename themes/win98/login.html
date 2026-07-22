@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Potato Share</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/98.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        body {
+            background-color: #008080; /* Classic Win98 Teal Desktop */
+            font-family: "Pixelated MS Sans Serif", "MS Sans Serif", Tahoma, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-window {
+            width: 420px;
+            max-width: 90%;
+        }
+
+        .login-content {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            padding: 10px 5px;
+        }
+
+        .key-icon-container {
+            font-size: 42px;
+            color: #000080;
+            padding-left: 5px;
+        }
+
+        .login-fields {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .field-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .field-row label {
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .field-row input {
+            flex-grow: 1;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .button-group button {
+            min-width: 75px;
+        }
+
+        .banner-text {
+            font-size: 11px;
+            line-height: 1.3;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="window login-window">
+        <div class="title-bar">
+            <div class="title-bar-text">
+                Welcome to Potato Share
+            </div>
+            <div class="title-bar-controls">
+                <button aria-label="Close" onclick="preventEscape(event)"></button>
+            </div>
+        </div>
+
+        <div class="window-body">
+            <div class="login-content">
+                <div class="key-icon-container">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+
+                <form action="/login" method="POST" id="loginForm" style="display: flex; width: 100%; gap: 12px;">
+                    <div class="login-fields">
+                        <div class="banner-text">
+                            Type a password to log in to <strong>Potato Share</strong>.
+                        </div>
+
+                        <div class="field-row">
+                            <label for="password">Password:</label>
+                            <input type="password" id="password" name="password" autofocus required>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" default>OK</button>
+                        <button type="button" onclick="cancelAttempt()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Prevent pressing Escape from doing anything dangerous or closing the dialog
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelAttempt();
+            }
+        });
+
+        function cancelAttempt() {
+            // Refuses to log in via Cancel / Escape
+            alert("Access Denied: You must enter a password to log into Potato Share.");
+        }
+
+        function preventEscape(e) {
+            e.preventDefault();
+            cancelAttempt();
+        }
+    </script>
+</body>
+
+</html>

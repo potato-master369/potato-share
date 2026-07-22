@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Index of {{ .CurrentPath }}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://unpkg.com/98.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        body {
+            background-color: #008080; /* Classic Win98 Teal Desktop */
+            font-family: "Pixelated MS Sans Serif", "MS Sans Serif", Tahoma, sans-serif;
+            padding: 10px;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .window {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .window-body {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .address-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+        }
+
+        .address-input {
+            flex-grow: 1;
+            background: #fff;
+            padding: 3px 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Large Icons Container / Desktop Grid View */
+        .file-browser-view {
+            background: #ffffff;
+            border: 2px inset #dfdfdf;
+            box-shadow: inset -1px -1px #fff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+            min-height: 300px;
+            padding: 15px;
+        }
+
+        .file-browser {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 15px;
+        }
+
+        /* Win98 Icon Item Style */
+        .file {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 8px 4px;
+            text-align: center;
+            user-select: none;
+            border: 1px transparent solid;
+            border-radius: 0;
+        }
+
+        /* Win98 Selection Highlight Effect */
+        .file:active,
+        .file:hover {
+            border: 1px dotted #000;
+        }
+
+        .file-link {
+            text-decoration: none;
+            color: #000000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .file:hover .file-link .filename-text {
+            background-color: #000080;
+            color: #ffffff;
+        }
+
+        .icon {
+            font-size: 36px;
+            margin-bottom: 6px;
+            color: #000000;
+        }
+
+        .filename-text {
+            font-size: 11px;
+            word-break: break-word;
+            padding: 2px 4px;
+            max-width: 100%;
+        }
+
+        .preview-link {
+            font-size: 10px;
+            color: #000080;
+            margin-top: 4px;
+            text-decoration: underline;
+        }
+
+        .file:hover .preview-link {
+            color: #000080;
+        }
+
+        .progress-box {
+            padding: 8px;
+            background: #c0c0c0;
+        }
+
+        .status-bar {
+            margin-top: 5px;
+            display: flex;
+            gap: 2px;
+        }
+
+        .status-field {
+            background: #c0c0c0;
+            border-top: 1px solid #808080;
+            border-left: 1px solid #808080;
+            border-right: 1px solid #fff;
+            border-bottom: 1px solid #fff;
+            padding: 2px 5px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="window">
+        <div class="title-bar">
+            <div class="title-bar-text">
+                <i class="fa-solid fa-folder-open"></i> Index of {{ .Host }}: {{ .CurrentPath }}
+            </div>
+            <div class="title-bar-controls">
+                <button aria-label="Minimize"></button>
+                <button aria-label="Maximize"></button>
+                <button aria-label="Close"></button>
+            </div>
+        </div>
+
+        <div class="window-body">
+            <div class="address-bar">
+                <span>Address:</span>
+                <div class="address-input inset-deep">{{ .CurrentPath }}</div>
+                <a href="/list"><button>List View</button></a>
+            </div>
+
+            <fieldset>
+                <legend>Upload File</legend>
+                <form action="/upload" id="uploadForm" method="POST" enctype="multipart/form-data" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                    <input type="hidden" id="uploadPath" name="path" value="{{ .CurrentPath }}">
+                    <input type="file" id="fileInput" name="myFile" required style="font-size: 11px; max-width: 100%;">
+                    <button type="submit">Upload</button>
+                </form>
+
+                <div id="progressContainer" class="progress-box" style="display: none; margin-top: 8px;">
+                    <progress id="progressBar" value="0" max="100" style="width: 100%;"></progress>
+                    <span id="progressText" style="font-size: 11px;">0% uploaded...</span>
+                </div>
+            </fieldset>
+
+            <details class="field-row-stacked">
+                <summary style="cursor: pointer; font-weight: bold;">Make a new folder in this directory</summary>
+                <form action="/mkdir" method="POST" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                    <input type="hidden" name="path" value="{{ .CurrentPath }}">
+                    <input type="hidden" name="returnTo" value="/grid">
+                    <label for="folderName">Folder Name:</label>
+                    <input type="text" id="folderName" name="folderName" required style="height: 21px;">
+                    <button type="submit">Create</button>
+                </form>
+            </details>
+
+            <div class="file-browser-view">
+                <div class="file-browser">
+                    {{ range .Files }}
+                    <div class="file">
+                        <a href="{{ .Link }}" class="file-link">
+                            <i class="fa-solid {{ .Icon }} icon"></i>
+                            <span class="filename-text">{{ .Name }}</span>
+                        </a>
+                        {{ if and (ne .Icon "fa-solid fa-folder") (ne .Icon "fa-solid fa-folder-open") }}
+                        <a href="{{ .PreviewLink}}" target="_blank" class="preview-link">(preview)</a>
+                        {{ end }}
+                    </div>
+                    {{ end }}
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <div class="status-field" style="flex-grow: 1;">Ready</div>
+                <div class="status-field"><a href="/logout" style="color: #000; text-decoration: none;">Log out</a></div>
+                <div class="status-field"><a href="/login" style="color: #000; text-decoration: none;">Log in</a></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('fileInput');
+            const path = document.getElementById('uploadPath').value;
+
+            if (fileInput.files.length === 0) return;
+
+            const formData = new FormData();
+            formData.append("myFile", fileInput.files[0]);
+            formData.append("path", path);
+
+            const xhr = new XMLHttpRequest();
+
+            document.getElementById('progressContainer').style.display = 'block';
+
+            xhr.upload.addEventListener('progress', function (e) {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    document.getElementById('progressBar').value = percentComplete;
+                    document.getElementById('progressText').textContent = percentComplete + '% uploaded...';
+                }
+            });
+
+            xhr.addEventListener('load', function () {
+                window.location.reload();
+            });
+
+            xhr.open('POST', '/upload', true);
+            xhr.send(formData);
+        });
+    </script>
+</body>
+
+</html>
