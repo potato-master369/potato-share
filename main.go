@@ -36,6 +36,15 @@ type PageData struct {
 	Files       []FileRow
 }
 
+type PasswordRow struct {
+	Password string
+	Perms    string
+}
+
+type AdminPageData struct {
+	Passwords []PasswordRow
+}
+
 type DataRow struct {
 	Password string
 }
@@ -62,6 +71,7 @@ func loadTemplates() error {
 		"preview-img":     "static/preview-img.html",
 		"preview-video":   "static/preview-video.html",
 		"preview-invalid": "static/preview-invalid.html",
+		"admin":           "static/admin.html",
 	}
 
 	for key, path := range files {
@@ -119,16 +129,16 @@ func loadIconsConfig(filepath string) error {
 	return scanner.Err()
 }
 
-func checkPassword(password string) (bool, error) {
-	var stored string
-	err := db.QueryRow("SELECT string FROM passwords WHERE string = ?", password).Scan(&stored)
+func checkPassword(password string) (bool, string, error) {
+	var stored, perms string
+	err := db.QueryRow("SELECT string, perms FROM passwords WHERE string = ?", password).Scan(&stored, &perms)
 	if err == sql.ErrNoRows {
-		return false, nil
+		return false, "", nil
 	}
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
-	return stored == password, nil
+	return stored == password, perms, nil
 }
 
 func generateSessionToken() (string, error) {
@@ -176,7 +186,7 @@ func ServeLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ok, err := checkPassword(password)
+	ok, perms, err := checkPassword(password)
 	if err != nil {
 		log.Printf("password check failed: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -194,7 +204,7 @@ func ServeLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = newSession(token, r.RemoteAddr)
+	err = newSession(token, r.RemoteAddr, perms)
 	if err != nil {
 		log.Printf("failed to save session: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -211,6 +221,20 @@ func getSessionToken(r *http.Request) (string, error) {
 		return "", err
 	}
 	return cookie.Value, nil
+}
+
+func getSessionPerms(r *http.Request) (string, error) {
+	token, err := getSessionToken(r)
+	if err != nil {
+		return "", err
+	}
+
+	var perms string
+	err = db.QueryRow("SELECT perms FROM sessions WHERE token = ?", token).Scan(&perms)
+	if err != nil {
+		return "", err
+	}
+	return perms, nil
 }
 
 func getAuthError(w http.ResponseWriter, r *http.Request, err error) {
@@ -536,12 +560,22 @@ func ServeDownload(w http.ResponseWriter, r *http.Request) {
 }
 
 func ServeUpload(w http.ResponseWriter, r *http.Request) {
+	perms, err := getSessionPerms(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if perms == "ro" {
+		http.Error(w, "Forbidden: read-only users cannot upload", http.StatusForbidden)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	err := r.ParseMultipartForm(32 << 20)
+	err = r.ParseMultipartForm(32 << 20)
 	if err != nil {
 		http.Error(w, "File too large or bad request", http.StatusBadRequest)
 		return
@@ -580,12 +614,22 @@ func ServeUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 func ServeMkdir(w http.ResponseWriter, r *http.Request) {
+	perms, err := getSessionPerms(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if perms == "ro" {
+		http.Error(w, "Forbidden: read-only users cannot create directories", http.StatusForbidden)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	err := r.ParseForm()
+	err = r.ParseForm()
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -609,13 +653,182 @@ func ServeMkdir(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, returnTo+currentPath, http.StatusSeeOther)
 }
 
-func newSession(token, ip string) error {
+func ensureSessionPermsColumn() error {
+	rows, err := db.Query("PRAGMA table_info(sessions)")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	hasPerms := false
+	for rows.Next() {
+		var cid int
+		var name string
+		var ctype string
+		var notnull int
+		var dflt sql.NullString
+		var pk int
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return err
+		}
+		if name == "perms" {
+			hasPerms = true
+			break
+		}
+	}
+
+	if !hasPerms {
+		_, err = db.Exec("ALTER TABLE sessions ADD COLUMN perms TEXT NOT NULL DEFAULT 'user'")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func cleanupExpiredSessions() error {
+	_, err := db.Exec("DELETE FROM sessions WHERE expiration <= ?", time.Now())
+	return err
+}
+
+func newSession(token, ip, perms string) error {
+	if err := cleanupExpiredSessions(); err != nil {
+		log.Printf("session cleanup failed before insert: %v", err)
+	}
+
 	expiration := time.Now().Add(2 * time.Hour) // Set expiration to 2 hours from now
-	_, err := insertSession.Exec(token, ip, expiration)
+	_, err := insertSession.Exec(token, ip, expiration, perms)
 	if err != nil {
 		return fmt.Errorf("failed to insert session: %w", err)
 	}
 	return nil
+}
+
+func AdminMiddleware(db *sql.DB, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("session_token")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+
+		var expiresAt time.Time
+		var perms string
+		err = db.QueryRow("SELECT expiration, perms FROM sessions WHERE token = ?", cookie.Value).Scan(&expiresAt, &perms)
+		if err != nil {
+			http.Error(w, "Unauthorized or session expired", http.StatusUnauthorized)
+			return
+		}
+		if time.Now().After(expiresAt) {
+			if _, delErr := db.Exec("DELETE FROM sessions WHERE token = ?", cookie.Value); delErr != nil {
+				log.Printf("failed to delete expired session: %v", delErr)
+			}
+			http.Error(w, "Unauthorized or session expired", http.StatusUnauthorized)
+			return
+		}
+
+		if perms != "admin" {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		next(w, r)
+	}
+}
+
+func ServeAdmin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	rows, err := db.Query("SELECT string, perms FROM passwords ORDER BY string")
+	if err != nil {
+		log.Printf("failed to query passwords: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	passwords := []PasswordRow{}
+	for rows.Next() {
+		var pw PasswordRow
+		if err := rows.Scan(&pw.Password, &pw.Perms); err != nil {
+			log.Printf("failed to scan password row: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		passwords = append(passwords, pw)
+	}
+
+	data := AdminPageData{Passwords: passwords}
+
+	tmpl := templates["admin"]
+	if tmpl == nil {
+		http.Error(w, "Internal Server Error: Missing or broken template", http.StatusInternalServerError)
+		return
+	}
+	if err := tmpl.Execute(w, data); err != nil {
+		log.Printf("admin template execution error: %v", err)
+	}
+}
+
+func ServePasswordCreate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	password := strings.TrimSpace(r.FormValue("passwd"))
+	perms := strings.TrimSpace(r.FormValue("perms"))
+	if password == "" {
+		http.Error(w, "Password required", http.StatusBadRequest)
+		return
+	}
+	if perms == "" {
+		perms = "user"
+	}
+
+	_, err = db.Exec("INSERT OR IGNORE INTO passwords(string, perms) VALUES(?, ?)", password, perms)
+	if err != nil {
+		log.Printf("failed to create password: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func ServePasswordDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	password := strings.TrimPrefix(r.URL.Path, "/passwd-delete/")
+	if password == "" {
+		http.Error(w, "Password not specified", http.StatusBadRequest)
+		return
+	}
+
+	_, err := db.Exec("DELETE FROM passwords WHERE string = ?", password)
+	if err != nil {
+		log.Printf("failed to delete password: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 
 func AuthMiddleware(db *sql.DB, next http.HandlerFunc) http.HandlerFunc {
@@ -655,8 +868,6 @@ func main() {
 		log.Fatalf("Database connection failed: %v", err)
 	}
 
-	// create tables
-	// Create table if not exists
 	createTable := `
 	CREATE TABLE IF NOT EXISTS passwords (
 		string TEXT PRIMARY KEY,
@@ -665,26 +876,31 @@ func main() {
 	CREATE TABLE IF NOT EXISTS sessions (
 		token TEXT PRIMARY KEY,
 		ip TEXT NOT NULL,
-		expiration DATETIME NOT NULL
+		expiration DATETIME NOT NULL,
+		perms TEXT NOT NULL DEFAULT 'user'
 	);`
 	if _, err := db.Exec(createTable); err != nil {
 		log.Fatalf("Error creating tables: %v", err)
+	}
+
+	if err := ensureSessionPermsColumn(); err != nil {
+		log.Fatalf("Error ensuring session perms column: %v", err)
 	}
 
 	insertPwd, err = db.Prepare("INSERT OR IGNORE INTO passwords(string, perms) VALUES(?, ?)")
 	if err != nil {
 		log.Fatalf("Error preparing password insert: %v", err)
 	}
-	insertSession, err = db.Prepare("INSERT INTO sessions(token, ip, expiration) VALUES(?, ?, ?)")
+	insertSession, err = db.Prepare("INSERT INTO sessions(token, ip, expiration, perms) VALUES(?, ?, ?, ?)")
 	if err != nil {
 		log.Fatalf("Error preparing session insert: %v", err)
 	}
 
-	// INSERT original password into the database if it doesn't exist
 	_, err = insertPwd.Exec("potato", "admin")
 	if err != nil {
 		log.Fatalf("Error inserting password: %v", err)
 	}
+
 	if len(args) > 1 {
 		loadpath = args[1]
 	}
@@ -708,14 +924,22 @@ func main() {
 		return
 	}
 
+	go func() {
+		ticker := time.NewTicker(15 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			if err := cleanupExpiredSessions(); err != nil {
+				log.Printf("session cleanup failed: %v", err)
+			}
+		}
+	}()
+
 	http.HandleFunc("/list/", AuthMiddleware(db, ServeFileBrowser))
 	http.HandleFunc("/download/", AuthMiddleware(db, ServeDownload))
 	http.HandleFunc("/upload", AuthMiddleware(db, ServeUpload))
 	http.HandleFunc("/mkdir", AuthMiddleware(db, ServeMkdir))
 	http.HandleFunc("/grid/", AuthMiddleware(db, ServeFileBrowserGrid))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Just straight up serve the file. http.ServeFile handles the
-		// content-type headers and streams the bytes efficiently.
 		http.ServeFile(w, r, "./static/index.html")
 	})
 
@@ -723,18 +947,20 @@ func main() {
 	http.Handle("/static/", AuthHandler(db, http.StripPrefix("/static", fs)))
 	http.HandleFunc("/preview/", AuthMiddleware(db, ServePreview))
 	http.HandleFunc("/login", ServeLogin)
+	http.HandleFunc("/admin", AdminMiddleware(db, ServeAdmin))
+	http.HandleFunc("/passwd-create", AdminMiddleware(db, ServePasswordCreate))
+	http.HandleFunc("/passwd-delete/", AdminMiddleware(db, ServePasswordDelete))
 
 	server := &http.Server{
 		Addr:           fmt.Sprintf("0.0.0.0:%d", port),
-		Handler:        nil,     // Uses the default mux handlers we registered above
-		ReadTimeout:    0,       // 0 means NO timeout (perfect for slow/huge uploads)
-		WriteTimeout:   0,       // 0 means NO timeout for downloading huge files
-		MaxHeaderBytes: 1 << 20, // 1MB max header size (standard)
+		Handler:        nil,
+		ReadTimeout:    0,
+		WriteTimeout:   0,
+		MaxHeaderBytes: 1 << 20,
 	}
 
 	fmt.Println("Server starting on http://0.0.0.0:" + strconv.Itoa(port) + "...")
 
-	// This binds the server to all network interfaces on port 8000
 	err = server.ListenAndServe()
 	if err != nil {
 		log.Fatal("ListenAndServe Error: ", err)
