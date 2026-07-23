@@ -42,3 +42,6 @@ And you're done.
 `./potato-share [SHARE_DIR] [PORT]`
 `SHARE_DIR`: Directory to share to, without the / at the end, e.g. "/home/ebayan/vscode"
 `PORT`: Port to host on, will host at 0.0.0.0:PORT. You can feel free to port forward this.
+
+
+The default password is `potato`. Change this in the admin panel.
