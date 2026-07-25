@@ -11,7 +11,7 @@ import (
 	"log"
 	"math"
 	"net/http"
-	_ "net/http/pprof"
+	//_ "net/http/pprof" // only enable for debug
 	"os"
 	"path/filepath"
 	"strconv"

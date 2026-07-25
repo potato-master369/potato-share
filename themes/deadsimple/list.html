@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Index of {{ .CurrentPath }}</title>
+
+</head>
+
+<body>
+	<h1>Index of {{ .Host }}: {{ .CurrentPath }}</h1>
+	<a href="/grid">To grid view</a>
+
+	<form action="/upload" id="uploadForm" method="POST" enctype="multipart/form-data" style="padding: 10px;">
+		<input type="hidden" id="uploadPath" name="pat`h" value="{{ .CurrentPath }}">
+
+		<label for="fileInput" style="font-family: sans-serif; font-weight: bold; color: #313B46;">
+			Upload File to current folder:
+		</label>
+		<input type="file" id="fileInput" name="myFile" required>
+		<button type="submit"
+			style="background-color: #8ea7c1; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
+			Upload
+		</button>
+	</form>
+
+	<div id="progressContainer" style="display: none; margin-top: 10px;">
+		<progress id="progressBar" value="0" max="100"></progress>
+		<span id="progressText" style="font-family: sans-serif; font-size: 12px; color: #313B46;">0%
+			uploaded...</span>
+	</div>
+
+	<details>
+		<summary>Make a new folder in this directory
+		</summary>
+		<form action="/mkdir" method="POST" style="padding: 10px">
+			<input type="hidden" id="uploadPath" name="path" value="{{ .CurrentPath }}">
+			<label for="folderName" style="font-family: sans-serif; font-weight: bold; color: #313B46;">
+				Folder Name:
+			</label>
+			<input type="text" id="folderName" name="folderName" required>
+			<input type="hidden" id="returnTo" name="returnTo" value="/list">
+			<br>
+			<button type="submit"
+				style="background-color: #8ea7c1; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
+				Create
+			</button>
+		</form>
+	</details>
+
+	<script>
+		document.getElementById('uploadForm').addEventListener('submit', function (e) {
+			e.preventDefault();
+
+			const fileInput = document.getElementById('fileInput');
+			const path = document.getElementById('uploadPath').value;
+
+			if (fileInput.files.length === 0) return;
+
+			const formData = new FormData();
+			formData.append("myFile", fileInput.files[0]);
+			formData.append("path", path);
+
+			const xhr = new XMLHttpRequest();
+
+			document.getElementById('progressContainer').style.display = 'block';
+
+			xhr.upload.addEventListener('progress', function (e) {
+				if (e.lengthComputable) {
+					const percentComplete = Math.round((e.loaded / e.total) * 100);
+					document.getElementById('progressBar').value = percentComplete;
+					document.getElementById('progressText').textContent = percentComplete + '% uploaded...';
+				}
+			});
+
+			xhr.addEventListener('load', function () {
+				window.location.reload();
+			});
+
+			xhr.open('POST', '/upload', true);
+			xhr.send(formData);
+		});
+	</script>
+
+	<table>
+		<tr>
+			<th>File name</th>
+			<th>Last modified</th>
+			<th>Size</th>
+			<th></th>
+		</tr>
+		{{ range .Files }}
+		<tr>
+			<td><a href="{{ .Link }}">{{ .Name }}</a>
+			{{ if and (ne .Icon "fa-solid fa-folder") (ne .Icon "fa-solid fa-folder-open") }}
+			<a href="{{ .PreviewLink }}" target="_blank">(preview)</a>
+			{{ end }}
+			</td>
+			<td>
+				<form action="/delete" method="POST">
+					<input type="hidden" name="deletePath" value="{{ $.CurrentPath }}">
+					<input type="hidden" name="deleteFile" value="{{ .Name }}">
+					{{ if and (ne .Icon "fa-solid fa-folder") (ne .Icon "fa-solid-fa-folder-open") }}
+					<button type="submit">Delete</button>
+					{{ end }}
+				</form>
+			</td>
+		</tr>
+		{{ end }}
+	<a href="/logout">Log out</a> <a href="/login">Log in</a>
+</body>
+
+</html>

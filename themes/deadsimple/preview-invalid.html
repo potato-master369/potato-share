@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview of {{ .Name }}</title>
+</head>
+<body>
+    <h1>Preview of {{ .Name }}</h1>
+    File information:
+
+    <table>
+        <tr>
+            <th>File Name</th>
+            <td>{{ .Name }}</td>
+        </tr>
+        <tr>
+            <th>File Size</th>
+            <td>{{ .Size }}</td>
+        </tr>
+        <tr>
+            <th>Last Modified</th>
+            <td>{{ .ModTime }}</td>
+        </tr>
+    </table>
+
+    <br>
+    This file is not valid for preview. Please download it to view its contents.
+</body>
+</html>

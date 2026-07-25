@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Preview of {{ .Name }}</title>
+</head>
+
+<body>
+	<h1>Preview of {{ .Name }}</h1>
+	File information:
+
+	<table>
+		<tr>
+			<th>File Name</th>
+			<td>{{ .Name }}</td>
+		</tr>
+		<tr>
+			<th>File Size</th>
+			<td>{{ .Size }}</td>
+		</tr>
+		<tr>
+			<th>Last Modified</th>
+			<td>{{ .ModTime }}</td>
+		</tr>
+	</table>
+
+	<br>
+	Image Preview:
+	<br>
+	<img src="{{ .URL }}" alt="Preview of {{ .Name }}"
+		style="max-width: 80%; height: auto; border: 1px solid #313B46; margin-top: 10px;">
+	<br>
+</body>
+
+</html>
