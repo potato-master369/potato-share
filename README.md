@@ -33,8 +33,13 @@ more of a homelab thing. I might consider making it a bit more professional in t
 
 Although there are prebuilt binaries, please run the following:
 ```bash
-go build
+./compile.sh
 ```
+This script contains a compilation command that removes debug stuff. It makes the final binary smaller (<10MB!).
+
+
+If you want debug stuff for whatever reason, just run `go build` to get a normal build.
+
 
 And you're done.
 
