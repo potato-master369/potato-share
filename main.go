@@ -11,6 +11,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+
 	//_ "net/http/pprof" // only enable for debug
 	"os"
 	"path/filepath"
@@ -269,7 +270,7 @@ func getIconForFile(filename string) string {
 	ext = strings.TrimPrefix(ext, ".")
 
 	if icon, exists := extensionIcons[ext]; exists {
-		return icon
+		return fmt.Sprintf("fa-solid %s", icon)
 	} else if ext == "DIR" {
 		return "fa-solid fa-folder"
 	}
