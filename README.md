@@ -29,6 +29,13 @@ PLEASE, PLEASE do not put this on somewhere accessible outside your local networ
 to make a password security system, it isn't PERFECT. This is meant for
 more of a homelab thing. I might consider making it a bit more professional in the future.
 
+## Obtaining
+```bash
+git clone https://github.com/potato-master369/potato-share
+```
+
+Or, download this repo as a ZIP.
+
 ## Build
 
 Although there are prebuilt binaries, please run the following:
@@ -60,4 +67,4 @@ themes/
         ...
 ```
 
-and apply them using `./applytheme.sh [THEME NAME]`.
+and apply them using `./applytheme.sh [THEME NAME]`. Recently, the default theme has been set to Default+ because it lowkey looks better. It is free to use as well.

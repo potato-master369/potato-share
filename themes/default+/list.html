@@ -39,12 +39,18 @@
         h2 {
             font-weight: medium;
             color: #313B46;
+            font-size: 1.1rem;
+            word-break: break-word;
         }
 
         i.bigwide {
             display: inline-block;
             margin-left: 20px;
             margin-right: 20px;
+        }
+
+        input.hidden-toggle {
+            display: none;
         }
 
         .topbar {
@@ -57,13 +63,34 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 12px;
             z-index: 10;
             min-height: 60px;
+        }
+
+        .topbar-lalign-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
         }
 
         .topbar-ralign-content {
             display: flex;
             justify-content: flex-end;
+        }
+
+        .hamburger {
+            display: none;
+            font-size: 20px;
+            color: #313B46;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 8px;
+        }
+
+        .hamburger:hover {
+            background-color: #ddd;
         }
 
         .sidebar {
@@ -73,12 +100,24 @@
             width: 260px;
             background-color: #eee;
             position: fixed;
+            top: 0;
+            left: 0;
             overflow: visible;
+            z-index: 15;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-inner {
+            padding-top: 70px;
+        }
+
+        .sidebar-backdrop {
+            display: none;
         }
 
         .content {
-            position: absolute;
-            left: 260px;
+            position: relative;
+            margin-left: 260px;
             padding: 16px 24px;
             outline: 20px solid #eee;
             width: calc(100% - 310px);
@@ -91,9 +130,11 @@
             margin: 20px;
             color: #313B46;
             text-decoration: none;
-            transition: all 0.5s;
+            transition: all 0.3s;
+            display: block;
         }
 
+        .sidebar a.notbutton:active,
         .sidebar a.notbutton:hover {
             color: #697e96;
         }
@@ -185,12 +226,14 @@
             padding: 16px 16px;
             width: fit-content;
             box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
-            transition: all 0.5s;
+            transition: all 0.3s;
             cursor: pointer;
             display: block;
             text-decoration: none;
+            margin: 0 20px 15px 20px;
         }
 
+        .new-button:active,
         .new-button:hover {
             background-color: #ddd;
         }
@@ -206,13 +249,14 @@
             border-radius: 5px;
             padding: 10px;
             width: 260px;
+            max-width: 80vw;
             top: 60px;
             left: 5px;
             height: fit-content;
             overflow: hidden;
             display: none;
             z-index: 99;
-            transition: all 0.5s;
+            transition: all 0.3s;
         }
 
         .upload-options-popup:target {
@@ -228,7 +272,8 @@
         a.fordropdown {
             color: black;
             text-decoration: none;
-            transition: all 0.5s;
+            transition: all 0.3s;
+            display: block;
         }
 
         .upload-options-popup a:hover,
@@ -244,14 +289,15 @@
             display: none;
             position: fixed;
             top: 10%;
-            left: max(calc(50vw - 400px), 10vw);
+            left: max(calc(50vw - 400px), 5vw);
             height: 80%;
-            width: min(800px, 80vw);
+            width: min(800px, 90vw);
             border-radius: 15px;
             background-color: #fff;
             outline: 2px solid #8ea7c1;
             z-index: 99;
             padding: 20px;
+            overflow-y: auto;
         }
 
         .upload-single-popup:target {
@@ -262,8 +308,8 @@
             display: none;
             position: fixed;
             top: calc(50vh - 80px);
-            left: calc(50vw - 200px);
-            width: 400px;
+            left: max(calc(50vw - 200px), 5vw);
+            width: min(400px, 90vw);
             height: 160px;
             border-radius: 15px;
             background-color: #fff;
@@ -361,10 +407,67 @@
             border: none;
             border-top: 1px solid #ccc;
         }
+
+        .modtime {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        @media (max-width: 700px) {
+            .list {
+                grid-template-columns: 20px auto 80px 80px;
+            }
+
+            .modtime {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hamburger {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                width: 240px;
+                box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.3);
+                background-color: #fff;
+            }
+
+            .sidebar-toggle:checked~.sidebar {
+                transform: translateX(0);
+            }
+
+            .sidebar-toggle:checked~.sidebar-backdrop {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: 12;
+                background-color: rgba(0, 0, 0, 0.3);
+            }
+
+            .content {
+                margin-left: 0;
+                width: calc(100% - 20px);
+                outline-width: 10px;
+                padding: 12px 14px;
+            }
+
+            h1 {
+                font-size: 1rem;
+            }
+        }
     </style>
 </head>
 
 <body>
+
+    <input type="checkbox" id="sidebar-toggle" class="hidden-toggle sidebar-toggle">
 
     <div class="upload-options-popup" id="upload-popup">
         <ul>
@@ -434,7 +537,7 @@
     <div class="mkdir-popup" id="mkdir-overlay">
         <a class="close-button" href="#"><i class="fa-solid fa-xmark"></i></a>
         <form action="/mkdir" method="POST" style="padding: 10px; display: flex; flex-direction: column; gap: 8px;">
-            <input type="hidden" id="uploadPath" name="path" value="{{ .CurrentPath }}">
+            <input type="hidden" id="mkdirPath" name="path" value="{{ .CurrentPath }}">
             <label for="folderName" style="font-family: sans-serif; font-weight: bold; color: #313B46;">
                 Folder Name:
             </label>
@@ -457,7 +560,7 @@
 
             <input type="file" id="batchFileInput" multiple style="margin-bottom: 12px; display: block;">
 
-            <input type="hidden" id="uploadPath" value="{{ .CurrentPath }}">
+            <input type="hidden" id="batchUploadPath" value="{{ .CurrentPath }}">
 
             <button type="button" id="uploadBtn"
                 style="background-color: #8ea7c1; color: black; border: none; padding: 8px 18px; border-radius: 5px; cursor: pointer; display: block; margin-left: auto;">
@@ -471,7 +574,7 @@
             document.getElementById('uploadBtn').addEventListener('click', async () => {
                 const fileInput = document.getElementById('batchFileInput');
                 const files = fileInput.files;
-                const currentPath = document.getElementById('uploadPath').value;
+                const currentPath = document.getElementById('batchUploadPath').value;
                 const statusdiv = document.getElementById('uploadStatus');
 
                 if (files.length === 0) {
@@ -515,7 +618,10 @@
     <a href="#" class="popup-backdrop"></a>
 
     <div class="topbar">
-        <h1><a href="/" class="nostyle">Potato Share</a></h1>
+        <div class="topbar-lalign-content">
+            <label for="sidebar-toggle" class="hamburger"><i class="fa-solid fa-bars"></i></label>
+            <h1><a href="/" class="nostyle">Potato Share</a></h1>
+        </div>
         <div class="topbar-ralign-content">
             <div class="dropdown">
                 <button class="signed-in-as">Sign-in options</button>
@@ -527,20 +633,24 @@
         </div>
     </div>
 
-    <div class="sidebar">
-        <a class="new-button" href="#upload-popup">
-            <span>
-                <i class="fa-solid fa-plus"></i>
-                New
-            </span>
-        </a>
+    <label for="sidebar-toggle" class="sidebar-backdrop"></label>
 
-        <ul>
-            <li><a class="notbutton" href="/list"><i class="fa-solid fa-house"></i> Home</a></li>
-            <li><a class="notbutton" href="/grid"><i class="fa-solid fa-grip"></i> Grid View</a></li>
-            <br>
-            <li><a class="notbutton" href="/admin"><i class="fa-solid fa-lock"></i> Admin Panel</a></li>
-        </ul>
+    <div class="sidebar">
+        <div class="sidebar-inner">
+            <a class="new-button" href="#upload-popup">
+                <span>
+                    <i class="fa-solid fa-plus"></i>
+                    New
+                </span>
+            </a>
+
+            <ul>
+                <li><a class="notbutton" href="/list"><i class="fa-solid fa-house"></i> Home</a></li>
+                <li><a class="notbutton" href="/grid"><i class="fa-solid fa-grip"></i> Grid View</a></li>
+                <br>
+                <li><a class="notbutton" href="/admin"><i class="fa-solid fa-lock"></i> Admin Panel</a></li>
+            </ul>
+        </div>
     </div>
 
     <div class="content">
@@ -548,7 +658,7 @@
         <div class="list">
             <div></div>
             <div><b>Name</b></div>
-            <div><b>Last Modified</b></div>
+            <div class="modtime"><b>Last Modified</b></div>
             <div><b>Size</b></div>
             <div></div>
             <hr>
@@ -558,7 +668,7 @@
             <div>
                 <a href="{{ if and (ne .Icon "fa-solid fa-folder") (ne .Icon "fa-solid fa-folder-open") }}{{ .PreviewLink }}{{ else }}{{ .Link }}{{ end }}" class="file-link">{{ .Name }}</a>
             </div>
-            <div>{{ .ModTime }}</div>
+            <div class="modtime">{{ .ModTime }}</div>
             <div>{{ .Size }}</div>
             <div>
                 {{ if and (ne .Icon "fa-solid fa-folder") (ne .Icon "fa-solid fa-folder-open") }}
